@@ -15,12 +15,22 @@ $document = Get-Content $WekanFile -Encoding UTF8 | ConvertFrom-Json
 $lists = @{}
 $document.lists | % { $lists[$_._id] = $_ }
 
-function tag($listId) {
+$labels = @{}
+$document.labels | % { $labels[$_._id] = $_ }
+
+function tags($listId, $labelIds) {
     $list = $lists[$listId]
     if ($list) {
-        "+" + $list.title.Replace(' ', '-').ToLower()
-    } else {
-        $null
+        '+' + $list.title.Replace(' ', '-').ToLower()
+    }
+
+    if ($labelIds) {
+        $labelIds | % {
+            $label = $labels[$_]
+            if ($label) {
+                '+' + $label.name.Replace(' ', '-').ToLower()
+            }
+        }
     }
 }
 
@@ -28,6 +38,6 @@ $document.cards | Sort-Object -Property dateLastActivity | % {
     $card = $_
     $action = if ($card.archived) { 'log' } else { 'add' }
     $title = enquote $card.title
-    $tag = tag $card.listId
-    "$task $action $BoardTag $tag $title"
+    $tags = (tags $card.listId $card.labelIds) -join ' '
+    "$task $action $BoardTag $tags $title"
 }
